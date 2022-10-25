@@ -1,6 +1,6 @@
 use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
-use crate::{ReturnRes, Task};
+use crate::{Returned, Task};
 
 pub struct Worker {
     thread : thread::JoinHandle<()>,
@@ -8,7 +8,7 @@ pub struct Worker {
 }
 
 impl Worker {
-    pub fn new(id : usize, tasks : Receiver<(Task, Sender<ReturnRes>)>, id_sender : Sender<usize>) -> Worker {
+    pub fn new(id : usize, tasks : Receiver<(Task, Sender<Returned>)>, id_sender : Sender<usize>) -> Worker {
         let thread = thread::spawn(move || {
             id_sender.send(id).unwrap();
             for (task, send_to) in tasks {
@@ -20,9 +20,5 @@ impl Worker {
             thread,
             id,
         }
-    }
-
-    pub fn send() {
-
     }
 }
