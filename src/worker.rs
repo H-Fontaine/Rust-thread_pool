@@ -21,4 +21,9 @@ impl Worker {
             id,
         }
     }
+
+    pub fn end(self) {
+        self.thread.join().unwrap();
+    }
+
 }

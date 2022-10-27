@@ -47,4 +47,12 @@ impl ThreadPool {
     pub fn add_task(&self) -> &Sender<(Task, Sender<Returned>)>  {
         &self.to_receive_task
     }
+
+    pub fn end(self) {
+        drop(self.to_receive_task);
+        self.queen.join().unwrap();
+        for worker in self.workers {
+            worker.end();
+        }
+    }
 }
