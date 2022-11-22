@@ -6,15 +6,6 @@ use std::sync::mpsc::channel;
 use matrix::Matrix;
 
 
-fn product(args : (Arc<Matrix<f32>>, Arc<Matrix<f32>>, usize, usize)) -> (f32, usize, usize) {
-    let mut res = 0f32;
-    let (a, b, i, j) = args;
-    for k in 0..a.lines() {
-        res += a[i][k] * b[k][j];
-    }
-    (res, i, j)
-}
-
 use std::time::Instant;
 fn main() {
     let size = 20;
