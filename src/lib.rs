@@ -1,4 +1,3 @@
-use std::iter::zip;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::thread;
 use std::thread::available_parallelism;
@@ -40,23 +39,27 @@ impl<T : Send + 'static> ThreadPool<T> {
         };
 
         //Creating workers
-        let (im_ready_sender, im_ready_receiver) = channel();
-        let mut tasks_senders = Vec::with_capacity(number_of_thread);      //Creating the vector that will carry the sender witch's will be use to send tasks to the workers
+        let mut tasks_senders = Vec::with_capacity(number_of_thread);        //Creating the vector that will carry the sender witch's will be use to send tasks to the workers
         let mut workers = Vec::with_capacity(number_of_thread);
         for i in 0..number_of_thread {
-            let (tasks_sender, tasks_receiver) = channel();             //Create a channel per worker to send them the tasks
-            tasks_senders.push(tasks_sender);                                                    //Saving senders
-            workers.push(Worker::new(i, im_ready_sender.clone(), tasks_receiver));   //Creating workers
+            let (tasks_sender, tasks_receiver) = channel();               //Create a channel per worker to send them the tasks
+            tasks_senders.push(tasks_sender);                                                      //Saving senders
+            workers.push(Worker::new(i, tasks_receiver));                                       // Creating workers
         }
 
         //Creating the queen threed
         let (tasks_waiting_queue_sender, tasks_waiting_queue_receiver) = channel(); //Channel which will send tasks to the queen thread
-        let queen = thread::spawn(move || {
-            for (task, id) in zip(tasks_waiting_queue_receiver, im_ready_receiver) {
+
+        let queen_closure = move || {
+            let mut id = 0;
+            for task in tasks_waiting_queue_receiver {
                 tasks_senders[id].send(task).unwrap();
+                id = (id + 1) % number_of_thread;                       //Choice of worker is simple, it just roll from 0 to number_of_thread - 1
             }
             drop(tasks_senders); //Dropping tasks_senders to stop workers
-        });
+        };
+
+        let queen = thread::spawn(queen_closure);
 
         ThreadPool {
             workers,
@@ -65,29 +68,24 @@ impl<T : Send + 'static> ThreadPool<T> {
         }
     }
 
-    pub fn add_task(&self) -> &Sender<Task<T>>  {
-        &self.tasks_waiting_queue_sender
-    }
-
     /*
     Method to give a task to the thread pool returning an Option<Receiver<T>> depending on opt_result_sender :
+     - runnable : Runnable<T>                           The boxed closure to send has a task
      - opt_result_sender : Option<Sender<T>>            This is made to provide or not a Sender, depends if the user already has a channel or not
-     - f : F                                            The closure to execute
-
-    pub fn add_task<F : Send + 'static>(&self, opt_result_sender : Option<Sender<T>>, f : Box<F>) -> Option<Receiver<T>> where F : Fn() -> T {
+    */
+    pub fn add_task(&self, runnable : Runnable<T>, opt_result_sender : Option<Sender<T>>) -> Option<Receiver<T>> {
         match opt_result_sender {
             Some(result_sender) => {
-                self.tasks_waiting_queue_sender.send((f, result_sender)).unwrap();          //Sending the task to the queen
-                None                                                                        //Returning nothing because the user already has the receiver
+                self.tasks_waiting_queue_sender.send((runnable, result_sender)).unwrap();            //Sending the task to the queen
+                None                                                                                    //Returning nothing because the user already has the receiver
             },
             None => {
-                let (result_sender, result_receiver) = channel();       //Creating a channel to return the result
-                self.tasks_waiting_queue_sender.send((f, result_sender)).unwrap();          //Sending the task
-                Some(result_receiver)                                                       //Returning the receiver because the user doesn't have it
+                let (result_sender, result_receiver) = channel();                  //Creating a channel to return the result
+                self.tasks_waiting_queue_sender.send((runnable, result_sender)).unwrap();            //Sending the task
+                Some(result_receiver)                                                                   //Returning the receiver because the user doesn't have it
             }
         }
     }
-     */
 
     //To terminate the ThreadPool
     pub fn join(self) {

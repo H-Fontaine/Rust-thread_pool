@@ -20,17 +20,14 @@ impl Worker {
      - im_ready : Sender<usize>                     This sender is to specify when the thread is ready to get a new task, when so its sends its id to the queen thread
      - tasks_receiver : Receiver<Runnable<T>>       This Receiver is to receive the tasks send by the queen thread and
     */
-    pub fn new<T : Send + 'static>(id : usize, im_ready : Sender<usize>, tasks_receiver : Receiver<Task<T>>) -> Worker {
+    pub fn new<T : Send + 'static>(id : usize, tasks_receiver : Receiver<Task<T>>) -> Worker {
         Worker {
             id,
             thread: thread::spawn(move || {
-                    im_ready.send(id).unwrap();                                                     //Sending the id the first time to say the thread is ready
-                    for (runnable, result_sender) in tasks_receiver {            //While task_receiver exist we wait for tasks
-                        result_sender.send(runnable()).unwrap();                                    //Sending runnable result
-                        im_ready.send(id).unwrap();                                                 //Sending id to say the thread is ready for another task
-                    }
+                for (runnable, result_sender) in tasks_receiver {            //While task_receiver exist we wait for tasks
+                    result_sender.send(runnable()).unwrap();                                    //Sending runnable result
                 }
-            ),
+            }),
         }
     }
 

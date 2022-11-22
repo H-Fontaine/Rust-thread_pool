@@ -17,12 +17,12 @@ fn product(args : (Arc<Matrix<f32>>, Arc<Matrix<f32>>, usize, usize)) -> (f32, u
 
 use std::time::Instant;
 fn main() {
-    let size = 2000;
+    let size = 20;
 
     let now = Instant::now();
     // Code block to measure.
     {
-        let thread_pool = ThreadPool::new(18);
+        let thread_pool = ThreadPool::new(19);
         let matrix_arc1 = Arc::new(Matrix::<f32>::ones(size, size));
         let matrix_arc2 = Arc::new(Matrix::<f32>::ones(size, size));
         let mut res = Matrix::<f32>::ones(matrix_arc1.lines(), matrix_arc1.columns());
@@ -33,13 +33,14 @@ fn main() {
             for j in 0..lines {
                 let matrix_arc1_cloned = matrix_arc1.clone();
                 let matrix_arc2_cloned = matrix_arc2.clone();
-                thread_pool.add_task().send((Box::new(move || {
+                let runnable = move || {
                     let mut res = 0f32;
                     for k in 0..lines {
-                        res += matrix_arc1_cloned[i][k] * matrix_arc2_cloned[k][k];
+                        res += matrix_arc1_cloned[i][k] * matrix_arc2_cloned[j][k];
                     }
                     (res, i, j)
-                }), sender.clone())).unwrap();
+                };
+                thread_pool.add_task(Box::new(runnable), Some(sender.clone()));
             }
         }
 
@@ -48,7 +49,7 @@ fn main() {
         for result in receiver {
             res[result.1][result.2] = result.0
         }
-        //res.display();
+        res.display();
         thread_pool.join();
     }
     let elapsed = now.elapsed();
