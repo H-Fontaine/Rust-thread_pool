@@ -8,7 +8,7 @@ use std::time::Instant;
 
 
 fn main() {
-    let size = 5000;
+    let size = 2000;
 
     let now = Instant::now();
     // Code block to measure.

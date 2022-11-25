@@ -1,3 +1,4 @@
+use std::any::Any;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::thread;
 use std::thread::available_parallelism;
@@ -6,7 +7,8 @@ use crate::worker::Worker;
 mod worker;
 
 type Runnable<T> = Box<dyn Fn() -> T + Send>; //Runnable is an undefined function that returns a type T
-type Task<T> = (Runnable<T>, Sender<T>);
+//type Task<T> = (Runnable<T>, Sender<T>);
+type Task<T> = (Runnable<T>, Option<Sender<T>>);
 
 
 /*
@@ -44,7 +46,7 @@ impl<T : Send + 'static> ThreadPool<T> {
         for _ in 0..number_of_thread {
             let (tasks_sender, tasks_receiver) = channel();               //Create a channel per worker to send them the tasks
             tasks_senders.push(tasks_sender);                                                      //Saving senders
-            workers.push(Worker::new(tasks_receiver));                                       // Creating workers
+            workers.push(Worker::new(tasks_receiver));                                             // Creating workers
         }
 
         //Creating the queen threed
@@ -54,7 +56,7 @@ impl<T : Send + 'static> ThreadPool<T> {
             let mut id = 0;
             for task in tasks_waiting_queue_receiver {
                 tasks_senders[id].send(task).unwrap();
-                id = (id + 1) % number_of_thread;                       //Choice of worker is simple, it just roll from 0 to number_of_thread - 1
+                id = (id + 1) % number_of_thread; //Choice of worker is simple, it just roll from 0 to number_of_thread - 1
             }
             drop(tasks_senders); //Dropping tasks_senders to stop workers
         };
@@ -68,6 +70,7 @@ impl<T : Send + 'static> ThreadPool<T> {
         }
     }
 
+    /*
     /*
     Method to give a task to the thread pool returning an Option<Receiver<T>> depending on opt_result_sender :
      - runnable : Runnable<T>                           The boxed closure to send has a task
@@ -85,6 +88,32 @@ impl<T : Send + 'static> ThreadPool<T> {
                 Some(result_receiver)                                                                   //Returning the receiver because the user doesn't have it
             }
         }
+    }
+
+
+    /*
+    Method to give a task to the thread pool returning an Option<Receiver<T>> depending on opt_result_sender :
+     - runnable : Runnable<T>                           The boxed closure to send has a task
+     - opt_result_sender : Option<Sender<T>>            This is made to provide or not a Sender, if there is no sender it must only be because the function return nothing
+    */
+    pub fn add_task(&self, runnable : Runnable<T>, opt_result_sender : Option<Sender<T>>) {
+        match opt_result_sender {
+            Some(sender) => self.tasks_waiting_queue_sender.send((runnable, Some(sender))).unwrap(),
+            None => {
+                assert_eq!(T.type_id(), ().type_id());
+                self.tasks_waiting_queue_sender.send((runnable, None)).unwrap()
+            }
+        }
+    }
+    */
+
+    /*
+    Method to give a task to the thread pool returning an Option<Receiver<T>> depending on opt_result_sender :
+     - runnable : Runnable<T>                           The boxed closure to send has a task
+     - opt_result_sender : Option<Sender<T>>            This is made to provide or not a Sender, if there is no sender it must only be because the function return nothing
+    */
+    pub fn add_task(&self, runnable : Runnable<T>, opt_result_sender : Option<Sender<T>>) {
+        self.tasks_waiting_queue_sender.send((runnable, opt_result_sender)).unwrap();
     }
 
     //To terminate the ThreadPool
