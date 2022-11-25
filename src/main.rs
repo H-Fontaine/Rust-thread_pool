@@ -1,14 +1,14 @@
 extern crate core;
 
 use std::sync::Arc;
-use threadPool::ThreadPool;
+use thread_pool::ThreadPool;
 use std::sync::mpsc::channel;
 use matrix::Matrix;
-
-
 use std::time::Instant;
+
+
 fn main() {
-    let size = 20;
+    let size = 5000;
 
     let now = Instant::now();
     // Code block to measure.
@@ -16,7 +16,7 @@ fn main() {
         let thread_pool = ThreadPool::new(19);
         let matrix_arc1 = Arc::new(Matrix::<f32>::ones(size, size));
         let matrix_arc2 = Arc::new(Matrix::<f32>::ones(size, size));
-        let mut res = Matrix::<f32>::ones(matrix_arc1.lines(), matrix_arc1.columns());
+        let mut _res = Matrix::<f32>::ones(matrix_arc1.lines(), matrix_arc1.columns());
         let (sender, receiver) = channel();
 
         let lines = matrix_arc1.lines();
@@ -38,25 +38,24 @@ fn main() {
         drop(sender);
 
         for result in receiver {
-            res[result.1][result.2] = result.0
+            _res[result.1][result.2] = result.0
         }
-        res.display();
+        //res.display();
         thread_pool.join();
     }
     let elapsed = now.elapsed();
     println!("Elapsed for multi threaded: {:.2?}", elapsed);
 
-    let now = Instant::now();
 
+
+    let now = Instant::now();
     // Code block to measure.
     {
         let matrix1 = Matrix::<f32>::ones(size, size);
         let matrix2 = Matrix::<f32>::ones(size, size);
-        let res = matrix1 * matrix2;
+        let _res = matrix1 * matrix2;
         //res.display();
     }
-
     let elapsed = now.elapsed();
     println!("Elapsed for single threaded: {:.2?}", elapsed);
-
 }

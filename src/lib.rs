@@ -41,10 +41,10 @@ impl<T : Send + 'static> ThreadPool<T> {
         //Creating workers
         let mut tasks_senders = Vec::with_capacity(number_of_thread);        //Creating the vector that will carry the sender witch's will be use to send tasks to the workers
         let mut workers = Vec::with_capacity(number_of_thread);
-        for i in 0..number_of_thread {
+        for _ in 0..number_of_thread {
             let (tasks_sender, tasks_receiver) = channel();               //Create a channel per worker to send them the tasks
             tasks_senders.push(tasks_sender);                                                      //Saving senders
-            workers.push(Worker::new(i, tasks_receiver));                                       // Creating workers
+            workers.push(Worker::new(tasks_receiver));                                       // Creating workers
         }
 
         //Creating the queen threed
