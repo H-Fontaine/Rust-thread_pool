@@ -5,7 +5,7 @@ use crate::worker::Worker;
 
 mod worker;
 
-type Runnable<T> = Box<dyn Fn() -> T + Send>; //Runnable is an undefined function that returns a type T
+type Runnable<T> = Box<dyn FnOnce() -> T + Send>; //Runnable is an undefined function that returns a type T
 //type Task<T> = (Runnable<T>, Sender<T>);
 type Task<T> = (Runnable<T>, Option<Sender<T>>);
 
