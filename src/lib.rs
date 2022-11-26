@@ -1,5 +1,4 @@
-use std::any::Any;
-use std::sync::mpsc::{channel, Receiver, Sender};
+use std::sync::mpsc::{channel, Sender};
 use std::thread;
 use std::thread::available_parallelism;
 use crate::worker::Worker;
